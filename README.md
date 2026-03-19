@@ -1,73 +1,119 @@
-# Welcome to your Lovable project
+# CERT RDC Kinshasa
 
-## Project info
+Plateforme nationale de veille, signalement et reponse aux incidents de cybersecurite pour la RDC.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Objectif
 
-## How can I edit this code?
+Cette application permet de :
 
-There are several ways of editing your application.
+- signaler des incidents cyber
+- qualifier, confirmer ou rejeter les incidents
+- passer un incident en etat d'alerte
+- publier des mesures preventives et correctives
+- centraliser une veille sur les vulnerabilites
+- publier des bulletins de securite
+- gerer des comptes publics, lecteurs, analystes, specialistes et administrateurs
 
-**Use Lovable**
+L'approche fonctionnelle s'inspire d'un fonctionnement de type CERT national, avec une orientation RDC / Kinshasa.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Fonctionnalites principales
 
-Changes made via Lovable will be committed automatically to this repo.
+- espace public pour les declarants et comptes lecture seule
+- espace reserve pour les administrateurs, specialistes, analystes et autorites
+- centre d'operations pour la validation et la gestion des incidents
+- gestion des roles utilisateur
+- invitations par email pour les comptes reserves
+- mot de passe temporaire et changement obligatoire a la premiere connexion
+- authentification a double facteur (TOTP)
+- veille CERT-FR importee automatiquement via une Edge Function Supabase
+- publication de bulletins de securite
 
-**Use your preferred IDE**
+## Stack technique
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+- React
+- TypeScript
+- Vite
+- Tailwind CSS
+- shadcn/ui
+- Supabase
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## Demarrage local
 
-Follow these steps:
+Prerequis :
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+- Node.js
+- npm
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+Installation :
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Build de production :
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```bash
+npm run build
+```
 
-**Use GitHub Codespaces**
+## Acces application
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Portail principal :
 
-## What technologies are used for this project?
+- `/login`
 
-This project is built with:
+Connexion publique :
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- `/login/public`
 
-## How can I deploy this project?
+Connexion reservee staff :
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+- `/login/staff`
 
-## Can I connect a custom domain to my Lovable project?
+Administration utilisateurs :
 
-Yes, you can!
+- `/admin/users`
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+Centre d'operations :
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- `/operations`
+
+## Roles applicatifs
+
+- `citizen` : declarant standard
+- `reader` : lecture seule
+- `analyst` : analyse et suivi
+- `specialist` : validation experte et publication
+- `authority` : supervision institutionnelle
+- `admin` : administration complete de la plateforme
+
+## Supabase
+
+Le projet utilise Supabase pour :
+
+- l'authentification
+- la gestion des roles
+- la base de donnees
+- les Edge Functions
+- la MFA
+
+Principales Edge Functions :
+
+- `import-cert-fr`
+- `invite-staff-user`
+
+## GitHub
+
+Depot source :
+
+- https://github.com/bazebanzea/CERTDRC_kinshasa
+
+## Securite
+
+Bonnes pratiques recommandees :
+
+- activer la 2FA pour les comptes reserves
+- changer immediatement le mot de passe temporaire apres invitation
+- limiter les roles admin aux seuls comptes necessaires
+- ne jamais publier les fichiers `.env` ni les cles sensibles

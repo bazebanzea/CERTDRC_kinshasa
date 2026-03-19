@@ -9,11 +9,13 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Constants, type Enums } from "@/integrations/supabase/types";
 import { ROLE_LABELS, statusBadgeClass } from "@/lib/cert";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const INVITABLE_ROLES: Enums<"app_role">[] = ["reader", "analyst", "specialist", "authority", "admin"];
 
 export default function AdminUsersPage() {
   const { hasRole } = useAuth();
+  const isMobile = useIsMobile();
   const [inviteForm, setInviteForm] = useState({
     fullName: "",
     email: "",
@@ -77,30 +79,30 @@ export default function AdminUsersPage() {
   if (isLoading) return <div className="text-muted-foreground text-sm">Chargement...</div>;
 
   return (
-    <div className="animate-fade-in space-y-4">
+    <div className="animate-fade-in space-y-4 sm:space-y-5">
       <div className="page-header">
         <h1 className="page-title">Administration des utilisateurs</h1>
         <p className="page-description">Gestion des profils lecture seule, specialistes cyber, analystes et autorites.</p>
       </div>
 
-      <section className="rounded-2xl border bg-card p-5 shadow-sm space-y-4">
+      <section className="rounded-2xl border bg-card p-4 shadow-sm sm:p-5 space-y-4">
         <div>
           <h2 className="text-lg font-semibold text-foreground">Inviter un compte reserve</h2>
           <p className="text-sm text-muted-foreground">Envoyer un email d'invitation avec mot de passe temporaire a un administrateur, specialiste, analyste, autorite ou lecteur.</p>
         </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div className="space-y-2 xl:col-span-1">
+          <div className="space-y-2">
             <Label htmlFor="invite_name">Nom complet</Label>
             <Input id="invite_name" value={inviteForm.fullName} onChange={(event) => setInviteForm({ ...inviteForm, fullName: event.target.value })} placeholder="Prenom Nom" />
           </div>
-          <div className="space-y-2 xl:col-span-1">
+          <div className="space-y-2">
             <Label htmlFor="invite_email">Email</Label>
             <Input id="invite_email" type="email" value={inviteForm.email} onChange={(event) => setInviteForm({ ...inviteForm, email: event.target.value })} placeholder="prenom.nom@cert-rdc.cd" />
           </div>
-          <div className="space-y-2 xl:col-span-1">
+          <div className="space-y-2">
             <Label>Role reserve</Label>
             <Select value={inviteForm.role} onValueChange={(value) => setInviteForm({ ...inviteForm, role: value as Enums<"app_role"> })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {INVITABLE_ROLES.map((role) => (
                   <SelectItem key={role} value={role}>{ROLE_LABELS[role]}</SelectItem>
@@ -108,7 +110,7 @@ export default function AdminUsersPage() {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-end xl:col-span-1">
+          <div className="flex items-end">
             <Button className="w-full" onClick={() => inviteMutation.mutate()} disabled={inviteMutation.isPending || !inviteForm.email.trim()}>
               {inviteMutation.isPending ? "Envoi..." : "Envoyer l'invitation"}
             </Button>
@@ -117,10 +119,10 @@ export default function AdminUsersPage() {
         {lastInvite && (
           <div className="rounded-xl border p-4 text-sm text-foreground">
             <p className="font-medium">Derniere invitation</p>
-            <p className="mt-2 text-muted-foreground">Email: {lastInvite.email}</p>
+            <p className="mt-2 break-all text-muted-foreground">Email: {lastInvite.email}</p>
             <p className="text-muted-foreground">Role: {ROLE_LABELS[lastInvite.role] || lastInvite.role}</p>
             <p className="text-muted-foreground">Mail envoye: {lastInvite.mailSent ? "oui" : "non"}</p>
-            <p className="mt-3 rounded-lg bg-muted px-3 py-2 font-mono text-sm">Mot de passe temporaire: {lastInvite.temporaryPassword}</p>
+            <p className="mt-3 overflow-x-auto rounded-lg bg-muted px-3 py-2 font-mono text-sm">Mot de passe temporaire: {lastInvite.temporaryPassword}</p>
           </div>
         )}
         <div className="rounded-xl border p-4 text-sm text-muted-foreground">
@@ -128,51 +130,80 @@ export default function AdminUsersPage() {
         </div>
       </section>
 
-      <div className="rounded-2xl border bg-card p-5 text-sm text-muted-foreground shadow-sm">
+      <div className="rounded-2xl border bg-card p-4 text-sm text-muted-foreground shadow-sm sm:p-5">
         Les comptes publics se creent via l'inscription publique. Pour donner un acces reserve, vous pouvez soit attribuer un role a un compte existant, soit envoyer directement une invitation reservee. Les utilisateurs privilegies se connecteront ensuite par la page <span className="font-medium text-foreground">/login/staff</span>.
       </div>
 
-      <div className="rounded-2xl border bg-card shadow-sm overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-muted/50 text-left">
-              <th className="px-4 py-3 font-medium text-muted-foreground">Nom</th>
-              <th className="px-4 py-3 font-medium text-muted-foreground">Email</th>
-              <th className="px-4 py-3 font-medium text-muted-foreground">Roles</th>
-              <th className="px-4 py-3 font-medium text-muted-foreground">Ajouter un role</th>
-              <th className="px-4 py-3 font-medium text-muted-foreground">Inscription</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((user) => (
-              <tr key={user.id} className="border-t align-top">
-                <td className="px-4 py-3 font-medium text-foreground">{user.full_name || "Utilisateur"}</td>
-                <td className="px-4 py-3 text-muted-foreground">{user.email}</td>
-                <td className="px-4 py-3">
-                  <div className="flex flex-wrap gap-2">
-                    {user.roles.map((role: string) => (
-                      <span key={role} className={`status-badge ${statusBadgeClass(role)}`}>{ROLE_LABELS[role] || role}</span>
+      {isMobile ? (
+        <div className="space-y-3">
+          {users.map((user) => (
+            <article key={user.id} className="rounded-2xl border bg-card p-4 shadow-sm">
+              <div className="space-y-1">
+                <p className="font-medium text-foreground">{user.full_name || "Utilisateur"}</p>
+                <p className="break-all text-sm text-muted-foreground">{user.email}</p>
+                <p className="text-xs text-muted-foreground">Inscription: {new Date(user.created_at).toLocaleDateString("fr-FR")}</p>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {user.roles.map((role: string) => (
+                  <span key={role} className={`status-badge ${statusBadgeClass(role)}`}>{ROLE_LABELS[role] || role}</span>
+                ))}
+              </div>
+              <div className="mt-4">
+                <Select onValueChange={(value) => handleAddRole(user.user_id, value as Enums<"app_role">)}>
+                  <SelectTrigger className="w-full"><SelectValue placeholder="Ajouter un role" /></SelectTrigger>
+                  <SelectContent>
+                    {Constants.public.Enums.app_role.filter((role) => !user.roles.includes(role)).map((role) => (
+                      <SelectItem key={role} value={role}>{ROLE_LABELS[role]}</SelectItem>
                     ))}
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <Select onValueChange={(value) => handleAddRole(user.user_id, value as Enums<"app_role">)}>
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Attribuer..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Constants.public.Enums.app_role.filter((role) => !user.roles.includes(role)).map((role) => (
-                        <SelectItem key={role} value={role}>{ROLE_LABELS[role]}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </td>
-                <td className="px-4 py-3 text-muted-foreground">{new Date(user.created_at).toLocaleDateString("fr-FR")}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                  </SelectContent>
+                </Select>
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-2xl border bg-card shadow-sm">
+          <div className="table-scroll">
+            <table className="w-full min-w-[860px] text-sm">
+              <thead>
+                <tr className="bg-muted/50 text-left">
+                  <th className="px-4 py-3 font-medium text-muted-foreground">Nom</th>
+                  <th className="px-4 py-3 font-medium text-muted-foreground">Email</th>
+                  <th className="px-4 py-3 font-medium text-muted-foreground">Roles</th>
+                  <th className="px-4 py-3 font-medium text-muted-foreground">Ajouter un role</th>
+                  <th className="px-4 py-3 font-medium text-muted-foreground">Inscription</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((user) => (
+                  <tr key={user.id} className="border-t align-top">
+                    <td className="px-4 py-3 font-medium text-foreground">{user.full_name || "Utilisateur"}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{user.email}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-2">
+                        {user.roles.map((role: string) => (
+                          <span key={role} className={`status-badge ${statusBadgeClass(role)}`}>{ROLE_LABELS[role] || role}</span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Select onValueChange={(value) => handleAddRole(user.user_id, value as Enums<"app_role">)}>
+                        <SelectTrigger className="w-[180px]"><SelectValue placeholder="Attribuer..." /></SelectTrigger>
+                        <SelectContent>
+                          {Constants.public.Enums.app_role.filter((role) => !user.roles.includes(role)).map((role) => (
+                            <SelectItem key={role} value={role}>{ROLE_LABELS[role]}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">{new Date(user.created_at).toLocaleDateString("fr-FR")}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

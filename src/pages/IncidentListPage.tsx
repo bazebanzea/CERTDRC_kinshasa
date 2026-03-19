@@ -16,11 +16,13 @@ import {
   severityBadgeClass,
   statusBadgeClass,
 } from "@/lib/cert";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type Incident = Tables<"incidents">;
 
 export default function IncidentListPage() {
   const { canReport } = useAuth();
+  const isMobile = useIsMobile();
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -56,8 +58,8 @@ export default function IncidentListPage() {
           <p className="page-description">{filtered.length} dossier(s) affiches avec validation, remediations et contexte national.</p>
         </div>
         {canReport && (
-          <Link to="/incidents/new">
-            <Button>
+          <Link to="/incidents/new" className="w-full sm:w-auto">
+            <Button className="w-full sm:w-auto">
               <PlusCircle className="mr-2 h-4 w-4" />
               Signaler un incident
             </Button>
@@ -65,13 +67,13 @@ export default function IncidentListPage() {
         )}
       </div>
 
-      <div className="flex flex-wrap gap-3">
-        <div className="relative min-w-[240px] flex-1 max-w-sm">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="relative sm:col-span-2 xl:col-span-1 xl:min-w-[240px]">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Titre, reference, contexte RDC..." className="pl-9" />
         </div>
         <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="w-[170px]"><SelectValue placeholder="Type" /></SelectTrigger>
+          <SelectTrigger className="w-full"><SelectValue placeholder="Type" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tous les types</SelectItem>
             {Constants.public.Enums.incident_type.map((type) => (
@@ -80,7 +82,7 @@ export default function IncidentListPage() {
           </SelectContent>
         </Select>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-[170px]"><SelectValue placeholder="Statut" /></SelectTrigger>
+          <SelectTrigger className="w-full"><SelectValue placeholder="Statut" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tous les statuts</SelectItem>
             {Constants.public.Enums.incident_status.map((status) => (
@@ -89,7 +91,7 @@ export default function IncidentListPage() {
           </SelectContent>
         </Select>
         <Select value={filterSeverity} onValueChange={setFilterSeverity}>
-          <SelectTrigger className="w-[170px]"><SelectValue placeholder="Severite" /></SelectTrigger>
+          <SelectTrigger className="w-full"><SelectValue placeholder="Severite" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Toutes les severites</SelectItem>
             {Constants.public.Enums.incident_severity.map((severity) => (
@@ -98,7 +100,7 @@ export default function IncidentListPage() {
           </SelectContent>
         </Select>
         <Select value={filterValidation} onValueChange={setFilterValidation}>
-          <SelectTrigger className="w-[210px]"><SelectValue placeholder="Validation" /></SelectTrigger>
+          <SelectTrigger className="w-full"><SelectValue placeholder="Validation" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Toutes les validations</SelectItem>
             {Constants.public.Enums.cert_validation_state.map((state) => (
@@ -112,35 +114,57 @@ export default function IncidentListPage() {
         <p className="text-sm text-muted-foreground">Chargement des incidents...</p>
       ) : filtered.length === 0 ? (
         <div className="rounded-2xl border bg-card p-6 text-sm text-muted-foreground">Aucun incident ne correspond aux filtres.</div>
+      ) : isMobile ? (
+        <div className="space-y-3">
+          {filtered.map((incident) => (
+            <article key={incident.id} className="rounded-2xl border bg-card p-4 shadow-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <Link to={`/incidents/${incident.id}`} className="font-medium text-primary hover:underline">{incident.title}</Link>
+                  <p className="mt-1 text-xs text-muted-foreground">{incident.public_reference || "Reference interne"} · {new Date(incident.reported_at).toLocaleDateString("fr-FR")}</p>
+                </div>
+                <span className={`status-badge ${severityBadgeClass(incident.severity)}`}>{INCIDENT_SEVERITY_LABELS[incident.severity]}</span>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                <span className={`status-badge ${statusBadgeClass(incident.status)}`}>{INCIDENT_STATUS_LABELS[incident.status]}</span>
+                <span className={`status-badge ${statusBadgeClass(incident.validation_state)}`}>{VALIDATION_STATE_LABELS[incident.validation_state]}</span>
+                <span className="status-badge status-muted">{INCIDENT_TYPE_LABELS[incident.type]}</span>
+              </div>
+              <p className="mt-3 text-sm text-muted-foreground">{incident.country_context}</p>
+            </article>
+          ))}
+        </div>
       ) : (
-        <div className="rounded-2xl border bg-card shadow-sm overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-muted/50 text-left">
-                <th className="px-4 py-3 font-medium text-muted-foreground">Incident</th>
-                <th className="px-4 py-3 font-medium text-muted-foreground">Type</th>
-                <th className="px-4 py-3 font-medium text-muted-foreground">Gravite</th>
-                <th className="px-4 py-3 font-medium text-muted-foreground">Statut</th>
-                <th className="px-4 py-3 font-medium text-muted-foreground">Validation</th>
-                <th className="px-4 py-3 font-medium text-muted-foreground">Contexte</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((incident) => (
-                <tr key={incident.id} className="border-t align-top hover:bg-muted/20 transition-colors">
-                  <td className="px-4 py-3">
-                    <Link to={`/incidents/${incident.id}`} className="font-medium text-primary hover:underline">{incident.title}</Link>
-                    <p className="mt-1 text-xs text-muted-foreground">{incident.public_reference || "Reference interne"} · {new Date(incident.reported_at).toLocaleDateString("fr-FR")}</p>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">{INCIDENT_TYPE_LABELS[incident.type]}</td>
-                  <td className="px-4 py-3"><span className={`status-badge ${severityBadgeClass(incident.severity)}`}>{INCIDENT_SEVERITY_LABELS[incident.severity]}</span></td>
-                  <td className="px-4 py-3"><span className={`status-badge ${statusBadgeClass(incident.status)}`}>{INCIDENT_STATUS_LABELS[incident.status]}</span></td>
-                  <td className="px-4 py-3"><span className={`status-badge ${statusBadgeClass(incident.validation_state)}`}>{VALIDATION_STATE_LABELS[incident.validation_state]}</span></td>
-                  <td className="px-4 py-3 text-muted-foreground">{incident.country_context}</td>
+        <div className="rounded-2xl border bg-card shadow-sm">
+          <div className="table-scroll">
+            <table className="w-full min-w-[860px] text-sm">
+              <thead>
+                <tr className="bg-muted/50 text-left">
+                  <th className="px-4 py-3 font-medium text-muted-foreground">Incident</th>
+                  <th className="px-4 py-3 font-medium text-muted-foreground">Type</th>
+                  <th className="px-4 py-3 font-medium text-muted-foreground">Gravite</th>
+                  <th className="px-4 py-3 font-medium text-muted-foreground">Statut</th>
+                  <th className="px-4 py-3 font-medium text-muted-foreground">Validation</th>
+                  <th className="px-4 py-3 font-medium text-muted-foreground">Contexte</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filtered.map((incident) => (
+                  <tr key={incident.id} className="border-t align-top transition-colors hover:bg-muted/20">
+                    <td className="px-4 py-3">
+                      <Link to={`/incidents/${incident.id}`} className="font-medium text-primary hover:underline">{incident.title}</Link>
+                      <p className="mt-1 text-xs text-muted-foreground">{incident.public_reference || "Reference interne"} · {new Date(incident.reported_at).toLocaleDateString("fr-FR")}</p>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">{INCIDENT_TYPE_LABELS[incident.type]}</td>
+                    <td className="px-4 py-3"><span className={`status-badge ${severityBadgeClass(incident.severity)}`}>{INCIDENT_SEVERITY_LABELS[incident.severity]}</span></td>
+                    <td className="px-4 py-3"><span className={`status-badge ${statusBadgeClass(incident.status)}`}>{INCIDENT_STATUS_LABELS[incident.status]}</span></td>
+                    <td className="px-4 py-3"><span className={`status-badge ${statusBadgeClass(incident.validation_state)}`}>{VALIDATION_STATE_LABELS[incident.validation_state]}</span></td>
+                    <td className="px-4 py-3 text-muted-foreground">{incident.country_context}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

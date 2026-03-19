@@ -117,3 +117,6 @@ Bonnes pratiques recommandees :
 - changer immediatement le mot de passe temporaire apres invitation
 - limiter les roles admin aux seuls comptes necessaires
 - ne jamais publier les fichiers `.env` ni les cles sensibles
+- 
+## lien du projet sur netlify
+- https://certdrc.netlify.app/

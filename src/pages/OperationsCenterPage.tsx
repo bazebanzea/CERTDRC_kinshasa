@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   BULLETIN_STATUS_LABELS,
   INCIDENT_SEVERITY_LABELS,
@@ -63,6 +64,7 @@ export default function OperationsCenterPage() {
   const { user, roles, canReview } = useAuth();
   const queryClient = useQueryClient();
   const canDelete = canDeleteIncidents(roles);
+  const isMobile = useIsMobile();
   const [queue, setQueue] = useState<"priority" | "pending" | "alert" | "resolved">("priority");
   const [selectedIncidentId, setSelectedIncidentId] = useState<string>("");
   const [reviewForm, setReviewForm] = useState<ReviewFormState>(DEFAULT_REVIEW_FORM);
@@ -138,7 +140,6 @@ export default function OperationsCenterPage() {
       if (!selectedIncident) return;
       const { error } = await supabase.from("incidents").update(updates).eq("id", selectedIncident.id);
       if (error) throw error;
-
       if (user && updates.status && updates.status !== selectedIncident.status) {
         await supabase.from("incident_logs").insert({
           incident_id: selectedIncident.id,
@@ -198,9 +199,7 @@ export default function OperationsCenterPage() {
     onError: (error: any) => toast.error(error.message),
   });
 
-  if (!canReview) {
-    return <div className="text-destructive">Acces reserve aux analystes, specialistes cyber, autorites et administrateurs.</div>;
-  }
+  if (!canReview) return <div className="text-destructive">Acces reserve aux analystes, specialistes cyber, autorites et administrateurs.</div>;
 
   const saveReview = () => {
     if (!selectedIncident) return;
@@ -229,17 +228,17 @@ export default function OperationsCenterPage() {
   };
 
   return (
-    <div className="animate-fade-in space-y-6">
-      <section className="rounded-2xl border bg-card p-6 shadow-sm">
+    <div className="animate-fade-in space-y-5 sm:space-y-6">
+      <section className="rounded-2xl border bg-card p-4 shadow-sm sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">Operations center</p>
-            <h1 className="mt-2 text-3xl font-semibold text-foreground">Espace administrateur specialiste cybersecurite</h1>
+            <h1 className="mt-2 text-2xl font-semibold text-foreground sm:text-3xl">Espace administrateur specialiste cybersecurite</h1>
             <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
               Confirmation des incidents signales, suppression des faux positifs, passage en etat d'alerte, publication de mesures preventives et emission des bulletins de securite.
             </p>
           </div>
-          <div className="flex flex-wrap gap-3 text-sm">
+          <div className="grid gap-2 sm:grid-cols-3 text-sm w-full lg:w-auto">
             <QueueBadge label="Prioritaires" value={incidents.filter((incident) => incident.status === "alert" || incident.validation_state === "pending_review" || incident.severity === "critical").length} />
             <QueueBadge label="Alertes" value={incidents.filter((incident) => incident.status === "alert").length} tone="critical" />
             <QueueBadge label="A valider" value={incidents.filter((incident) => incident.validation_state === "pending_review").length} tone="warning" />
@@ -247,24 +246,24 @@ export default function OperationsCenterPage() {
         </div>
       </section>
 
-      <div className="flex flex-wrap gap-3">
-        <Button variant={queue === "priority" ? "default" : "outline"} onClick={() => setQueue("priority")}>Dossiers prioritaires</Button>
-        <Button variant={queue === "pending" ? "default" : "outline"} onClick={() => setQueue("pending")}>En attente de revue</Button>
-        <Button variant={queue === "alert" ? "default" : "outline"} onClick={() => setQueue("alert")}>Alertes actives</Button>
-        <Button variant={queue === "resolved" ? "default" : "outline"} onClick={() => setQueue("resolved")}>Mitiges / resolus</Button>
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        <Button variant={queue === "priority" ? "default" : "outline"} className="w-full" onClick={() => setQueue("priority")}>Dossiers prioritaires</Button>
+        <Button variant={queue === "pending" ? "default" : "outline"} className="w-full" onClick={() => setQueue("pending")}>En attente de revue</Button>
+        <Button variant={queue === "alert" ? "default" : "outline"} className="w-full" onClick={() => setQueue("alert")}>Alertes actives</Button>
+        <Button variant={queue === "resolved" ? "default" : "outline"} className="w-full" onClick={() => setQueue("resolved")}>Mitiges / resolus</Button>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[0.95fr_1.55fr]">
-        <section className="rounded-2xl border bg-card p-4 shadow-sm">
-          <div className="mb-4 flex items-center justify-between">
+        <section className="rounded-2xl border bg-card p-4 shadow-sm sm:p-5">
+          <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-foreground">File d'operations</h2>
               <p className="text-sm text-muted-foreground">Selectionne un dossier pour agir.</p>
             </div>
-            <span className="text-xs text-muted-foreground">{queueIncidents.length} dossier(s)</span>
+            <span className="shrink-0 text-xs text-muted-foreground">{queueIncidents.length} dossier(s)</span>
           </div>
 
-          <div className="space-y-3 max-h-[70vh] overflow-auto pr-1">
+          <div className={isMobile ? "space-y-3" : "max-h-[70vh] space-y-3 overflow-auto pr-1"}>
             {incidentsQuery.isLoading ? (
               <p className="text-sm text-muted-foreground">Chargement des dossiers...</p>
             ) : queueIncidents.length === 0 ? (
@@ -277,7 +276,7 @@ export default function OperationsCenterPage() {
                   className={`w-full rounded-2xl border p-4 text-left transition ${selectedIncident?.id === incident.id ? "border-primary bg-primary/5" : "hover:bg-muted/30"}`}
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div>
+                    <div className="min-w-0">
                       <p className="font-medium text-foreground">{incident.title}</p>
                       <p className="mt-1 text-xs text-muted-foreground">{incident.public_reference || "Reference interne"} - {incident.region || incident.country_context}</p>
                     </div>
@@ -298,10 +297,10 @@ export default function OperationsCenterPage() {
             <section className="rounded-2xl border bg-card p-6 text-sm text-muted-foreground shadow-sm">Selectionne un incident pour afficher les actions du centre d'operations.</section>
           ) : (
             <>
-              <section className="rounded-2xl border bg-card p-6 shadow-sm space-y-4">
+              <section className="rounded-2xl border bg-card p-4 shadow-sm sm:p-6 space-y-4">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div>
-                    <h2 className="text-2xl font-semibold text-foreground">{selectedIncident.title}</h2>
+                    <h2 className="text-xl font-semibold text-foreground sm:text-2xl">{selectedIncident.title}</h2>
                     <p className="mt-2 text-sm text-muted-foreground">{selectedIncident.description}</p>
                   </div>
                   <div className="flex flex-wrap gap-2 text-xs">
@@ -311,35 +310,26 @@ export default function OperationsCenterPage() {
                   </div>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   <InfoTile title="Reference" value={selectedIncident.public_reference || "A definir"} />
                   <InfoTile title="Contexte" value={selectedIncident.country_context} />
                   <InfoTile title="Declare le" value={new Date(selectedIncident.reported_at).toLocaleString("fr-FR")} />
                   <InfoTile title="Detail" value={<Link className="text-primary hover:underline" to={`/incidents/${selectedIncident.id}`}>Ouvrir le dossier detaille</Link>} />
                 </div>
 
-                <div className="flex flex-wrap gap-3">
-                  <Button onClick={() => applyStatusPreset("confirmed", "validated")} disabled={updateIncidentMutation.isPending}>Confirmer</Button>
-                  <Button variant="outline" onClick={() => applyStatusPreset("alert", "validated")} disabled={updateIncidentMutation.isPending}>Passer en alerte</Button>
-                  <Button variant="outline" onClick={() => applyStatusPreset("under_analysis", "needs_information")} disabled={updateIncidentMutation.isPending}>Demander des informations</Button>
-                  <Button variant="outline" onClick={() => applyStatusPreset("resolved", "mitigated")} disabled={updateIncidentMutation.isPending}>Marquer comme resolu</Button>
-                  <Button variant="destructive" onClick={() => applyStatusPreset("rejected", "closed")} disabled={updateIncidentMutation.isPending}>Rejeter</Button>
+                <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                  <Button className="w-full" onClick={() => applyStatusPreset("confirmed", "validated")} disabled={updateIncidentMutation.isPending}>Confirmer</Button>
+                  <Button variant="outline" className="w-full" onClick={() => applyStatusPreset("alert", "validated")} disabled={updateIncidentMutation.isPending}>Passer en alerte</Button>
+                  <Button variant="outline" className="w-full" onClick={() => applyStatusPreset("under_analysis", "needs_information")} disabled={updateIncidentMutation.isPending}>Demander des informations</Button>
+                  <Button variant="outline" className="w-full" onClick={() => applyStatusPreset("resolved", "mitigated")} disabled={updateIncidentMutation.isPending}>Marquer comme resolu</Button>
+                  <Button variant="destructive" className="w-full" onClick={() => applyStatusPreset("rejected", "closed")} disabled={updateIncidentMutation.isPending}>Rejeter</Button>
                   {canDelete && (
-                    <Button
-                      variant="destructive"
-                      onClick={() => {
-                        if (!window.confirm("Supprimer definitivement cet incident ?")) return;
-                        deleteMutation.mutate();
-                      }}
-                      disabled={deleteMutation.isPending}
-                    >
-                      Supprimer
-                    </Button>
+                    <Button variant="destructive" className="w-full" onClick={() => { if (!window.confirm("Supprimer definitivement cet incident ?")) return; deleteMutation.mutate(); }} disabled={deleteMutation.isPending}>Supprimer</Button>
                   )}
                 </div>
               </section>
 
-              <section className="rounded-2xl border bg-card p-6 shadow-sm space-y-4">
+              <section className="rounded-2xl border bg-card p-4 shadow-sm sm:p-6 space-y-4">
                 <div>
                   <h2 className="text-lg font-semibold text-foreground">Revue du specialiste cyber</h2>
                   <p className="text-sm text-muted-foreground">Completer l'analyse, les mesures preventives et la verification de resolution.</p>
@@ -362,70 +352,30 @@ export default function OperationsCenterPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="affected_systems">Systemes affectes</Label>
-                    <Textarea id="affected_systems" rows={3} value={reviewForm.affected_systems} onChange={(event) => setReviewForm({ ...reviewForm, affected_systems: event.target.value })} />
-                  </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="analyst_notes">Notes d'analyse</Label>
-                    <Textarea id="analyst_notes" rows={3} value={reviewForm.analyst_notes} onChange={(event) => setReviewForm({ ...reviewForm, analyst_notes: event.target.value })} />
-                  </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="expert_summary">Synthese du specialiste</Label>
-                    <Textarea id="expert_summary" rows={4} value={reviewForm.expert_summary} onChange={(event) => setReviewForm({ ...reviewForm, expert_summary: event.target.value })} />
-                  </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="remediation_steps">Mesures preventives et actions de remediations</Label>
-                    <Textarea id="remediation_steps" rows={5} value={reviewForm.remediation_steps} onChange={(event) => setReviewForm({ ...reviewForm, remediation_steps: event.target.value })} placeholder="Contenir l'attaque, isoler les postes, changer les secrets, appliquer les correctifs, renforcer la supervision..." />
-                  </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="resolution_verification">Confirmation de resolution</Label>
-                    <Textarea id="resolution_verification" rows={4} value={reviewForm.resolution_verification} onChange={(event) => setReviewForm({ ...reviewForm, resolution_verification: event.target.value })} placeholder="Preciser les preuves de correction, les journaux verifies et les controles a rejouer." />
-                  </div>
+                  <div className="space-y-2 md:col-span-2"><Label htmlFor="affected_systems">Systemes affectes</Label><Textarea id="affected_systems" rows={3} value={reviewForm.affected_systems} onChange={(event) => setReviewForm({ ...reviewForm, affected_systems: event.target.value })} /></div>
+                  <div className="space-y-2 md:col-span-2"><Label htmlFor="analyst_notes">Notes d'analyse</Label><Textarea id="analyst_notes" rows={3} value={reviewForm.analyst_notes} onChange={(event) => setReviewForm({ ...reviewForm, analyst_notes: event.target.value })} /></div>
+                  <div className="space-y-2 md:col-span-2"><Label htmlFor="expert_summary">Synthese du specialiste</Label><Textarea id="expert_summary" rows={4} value={reviewForm.expert_summary} onChange={(event) => setReviewForm({ ...reviewForm, expert_summary: event.target.value })} /></div>
+                  <div className="space-y-2 md:col-span-2"><Label htmlFor="remediation_steps">Mesures preventives et actions de remediations</Label><Textarea id="remediation_steps" rows={5} value={reviewForm.remediation_steps} onChange={(event) => setReviewForm({ ...reviewForm, remediation_steps: event.target.value })} /></div>
+                  <div className="space-y-2 md:col-span-2"><Label htmlFor="resolution_verification">Confirmation de resolution</Label><Textarea id="resolution_verification" rows={4} value={reviewForm.resolution_verification} onChange={(event) => setReviewForm({ ...reviewForm, resolution_verification: event.target.value })} /></div>
                 </div>
-                <Button onClick={saveReview} disabled={updateIncidentMutation.isPending}>{updateIncidentMutation.isPending ? "Sauvegarde..." : "Sauvegarder la revue"}</Button>
+                <Button className="w-full sm:w-auto" onClick={saveReview} disabled={updateIncidentMutation.isPending}>{updateIncidentMutation.isPending ? "Sauvegarde..." : "Sauvegarder la revue"}</Button>
               </section>
 
-              <section className="rounded-2xl border bg-card p-6 shadow-sm space-y-4">
+              <section className="rounded-2xl border bg-card p-4 shadow-sm sm:p-6 space-y-4">
                 <div>
                   <h2 className="text-lg font-semibold text-foreground">Publication d'un bulletin</h2>
-                  <p className="text-sm text-muted-foreground">Transformer ce dossier en bulletin CERT avec mesures preventives, contexte national et recommandations officielles.</p>
+                  <p className="text-sm text-muted-foreground">Transformer ce dossier en bulletin CERT avec mesures preventives et recommandations officielles.</p>
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="bulletin_title">Titre</Label>
-                    <Input id="bulletin_title" value={bulletinForm.title} onChange={(event) => setBulletinForm({ ...bulletinForm, title: event.target.value })} />
-                  </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="bulletin_summary">Resume executif</Label>
-                    <Textarea id="bulletin_summary" rows={3} value={bulletinForm.summary} onChange={(event) => setBulletinForm({ ...bulletinForm, summary: event.target.value })} />
-                  </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="bulletin_content">Contenu</Label>
-                    <Textarea id="bulletin_content" rows={8} value={bulletinForm.content} onChange={(event) => setBulletinForm({ ...bulletinForm, content: event.target.value })} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Statut</Label>
-                    <Select value={bulletinForm.status} onValueChange={(value) => setBulletinForm({ ...bulletinForm, status: value as Bulletin["status"] })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="draft">{BULLETIN_STATUS_LABELS.draft}</SelectItem>
-                        <SelectItem value="review">{BULLETIN_STATUS_LABELS.review}</SelectItem>
-                        <SelectItem value="published">{BULLETIN_STATUS_LABELS.published}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="rounded-xl border p-4 text-sm text-muted-foreground">
-                    Le bulletin reprendra automatiquement le contexte national, la reference du dossier et les mesures preventives renseignees plus haut.
-                  </div>
+                  <div className="space-y-2 md:col-span-2"><Label htmlFor="bulletin_title">Titre</Label><Input id="bulletin_title" value={bulletinForm.title} onChange={(event) => setBulletinForm({ ...bulletinForm, title: event.target.value })} /></div>
+                  <div className="space-y-2 md:col-span-2"><Label htmlFor="bulletin_summary">Resume executif</Label><Textarea id="bulletin_summary" rows={3} value={bulletinForm.summary} onChange={(event) => setBulletinForm({ ...bulletinForm, summary: event.target.value })} /></div>
+                  <div className="space-y-2 md:col-span-2"><Label htmlFor="bulletin_content">Contenu</Label><Textarea id="bulletin_content" rows={8} value={bulletinForm.content} onChange={(event) => setBulletinForm({ ...bulletinForm, content: event.target.value })} /></div>
+                  <div className="space-y-2"><Label>Statut</Label><Select value={bulletinForm.status} onValueChange={(value) => setBulletinForm({ ...bulletinForm, status: value as Bulletin["status"] })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="draft">{BULLETIN_STATUS_LABELS.draft}</SelectItem><SelectItem value="review">{BULLETIN_STATUS_LABELS.review}</SelectItem><SelectItem value="published">{BULLETIN_STATUS_LABELS.published}</SelectItem></SelectContent></Select></div>
+                  <div className="rounded-xl border p-4 text-sm text-muted-foreground">Le bulletin reprendra automatiquement le contexte national, la reference du dossier et les mesures preventives renseignees plus haut.</div>
                 </div>
-                <div className="flex flex-wrap gap-3">
-                  <Button onClick={() => publishBulletinMutation.mutate()} disabled={publishBulletinMutation.isPending || !bulletinForm.title || !bulletinForm.summary || !bulletinForm.content}>
-                    {publishBulletinMutation.isPending ? "Publication..." : "Enregistrer le bulletin"}
-                  </Button>
-                  <Link to="/bulletins">
-                    <Button variant="outline">Voir tous les bulletins</Button>
-                  </Link>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <Button className="w-full" onClick={() => publishBulletinMutation.mutate()} disabled={publishBulletinMutation.isPending || !bulletinForm.title || !bulletinForm.summary || !bulletinForm.content}>{publishBulletinMutation.isPending ? "Publication..." : "Enregistrer le bulletin"}</Button>
+                  <Link to="/bulletins" className="w-full"><Button className="w-full" variant="outline">Voir tous les bulletins</Button></Link>
                 </div>
               </section>
             </>
@@ -438,14 +388,14 @@ export default function OperationsCenterPage() {
 
 function QueueBadge({ label, value, tone }: { label: string; value: number; tone?: "warning" | "critical" }) {
   const className = tone === "critical" ? "status-critical" : tone === "warning" ? "status-warning" : "status-info";
-  return <span className={`status-badge ${className}`}>{label}: {value}</span>;
+  return <span className={`status-badge ${className} justify-center`}>{label}: {value}</span>;
 }
 
 function InfoTile({ title, value }: { title: string; value: React.ReactNode }) {
   return (
     <div className="rounded-xl border p-4">
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{title}</p>
-      <div className="mt-2 text-sm text-foreground">{value}</div>
+      <div className="mt-2 break-words text-sm text-foreground">{value}</div>
     </div>
   );
 }

@@ -23,7 +23,6 @@ import {
 
 type Incident = Tables<"incidents">;
 type IncidentComment = Tables<"incident_comments"> & { author_name?: string };
-
 type IncidentStatus = Enums<"incident_status"> | "alert";
 type ValidationState = Enums<"cert_validation_state">;
 
@@ -99,25 +98,12 @@ export default function IncidentDetailPage() {
     mutationFn: async (updates: Partial<Incident>) => {
       const { error } = await supabase.from("incidents").update(updates).eq("id", id!);
       if (error) throw error;
-
       if (user && incidentQuery.data) {
         if (updates.status && updates.status !== incidentQuery.data.status) {
-          await supabase.from("incident_logs").insert({
-            incident_id: id!,
-            user_id: user.id,
-            action: "status_change",
-            old_value: incidentQuery.data.status,
-            new_value: updates.status,
-          });
+          await supabase.from("incident_logs").insert({ incident_id: id!, user_id: user.id, action: "status_change", old_value: incidentQuery.data.status, new_value: updates.status });
         }
         if (updates.validation_state && updates.validation_state !== incidentQuery.data.validation_state) {
-          await supabase.from("incident_logs").insert({
-            incident_id: id!,
-            user_id: user.id,
-            action: "validation_change",
-            old_value: incidentQuery.data.validation_state,
-            new_value: updates.validation_state,
-          });
+          await supabase.from("incident_logs").insert({ incident_id: id!, user_id: user.id, action: "validation_change", old_value: incidentQuery.data.validation_state, new_value: updates.validation_state });
         }
       }
     },
@@ -133,12 +119,7 @@ export default function IncidentDetailPage() {
   const commentMutation = useMutation({
     mutationFn: async () => {
       if (!user || !comment.trim()) return;
-      const { error } = await supabase.from("incident_comments").insert({
-        incident_id: id!,
-        user_id: user.id,
-        content: comment.trim(),
-        is_internal: canReview ? internalComment : false,
-      });
+      const { error } = await supabase.from("incident_comments").insert({ incident_id: id!, user_id: user.id, content: comment.trim(), is_internal: canReview ? internalComment : false });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -152,11 +133,7 @@ export default function IncidentDetailPage() {
 
   const incident = incidentQuery.data;
   const comments = commentsQuery.data ?? [];
-
-  const availableTransitions = useMemo(() => {
-    if (!incident || !canReview) return [];
-    return STATUS_TRANSITIONS[incident.status] || [];
-  }, [incident, canReview]);
+  const availableTransitions = useMemo(() => (!incident || !canReview ? [] : STATUS_TRANSITIONS[incident.status] || []), [incident, canReview]);
 
   if (incidentQuery.isLoading) return <div className="text-muted-foreground text-sm">Chargement du dossier...</div>;
   if (!incident) return <div className="text-destructive">Incident introuvable</div>;
@@ -171,50 +148,38 @@ export default function IncidentDetailPage() {
       public_reference: reviewForm.public_reference || null,
       validation_state: reviewForm.validation_state,
     };
-
     if (["validated", "mitigated", "closed"].includes(reviewForm.validation_state)) {
       updates.validated_at = new Date().toISOString();
       updates.validated_by = user?.id ?? null;
     }
-
     updateMutation.mutate(updates);
   };
 
   const changeStatus = (status: IncidentStatus) => {
-    const updates: Partial<Incident> = {
-      status: status as Incident["status"],
-      resolved_at: status === "resolved" ? new Date().toISOString() : null,
-    };
-
+    const updates: Partial<Incident> = { status: status as Incident["status"], resolved_at: status === "resolved" ? new Date().toISOString() : null };
     if (status === "confirmed" || status === "alert") {
       updates.validation_state = "validated";
       updates.validated_at = new Date().toISOString();
       updates.validated_by = user?.id ?? null;
     }
-
-    if (status === "resolved") {
-      updates.validation_state = "mitigated";
-    }
-
+    if (status === "resolved") updates.validation_state = "mitigated";
     updateMutation.mutate(updates);
   };
 
   return (
-    <div className="animate-fade-in max-w-6xl space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="animate-fade-in space-y-5 sm:space-y-6">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <button onClick={() => navigate("/incidents")} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" /> Retour vers les incidents
         </button>
-        {canReview && (
-          <Link to="/operations" className="text-sm text-primary hover:underline">Ouvrir le centre d'operations</Link>
-        )}
+        {canReview && <Link to="/operations" className="text-sm text-primary hover:underline">Ouvrir le centre d'operations</Link>}
       </div>
 
-      <section className="rounded-2xl border bg-card p-6 shadow-sm">
+      <section className="rounded-2xl border bg-card p-4 shadow-sm sm:p-6">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">Dossier CERT RDC</p>
-            <h1 className="mt-2 text-3xl font-semibold text-foreground">{incident.title}</h1>
+            <h1 className="mt-2 text-2xl font-semibold text-foreground sm:text-3xl">{incident.title}</h1>
             <p className="mt-2 max-w-3xl text-sm text-muted-foreground">{incident.description}</p>
           </div>
           <div className="flex flex-wrap gap-2 text-xs">
@@ -228,9 +193,9 @@ export default function IncidentDetailPage() {
 
       <div className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
         <div className="space-y-6">
-          <section className="rounded-2xl border bg-card p-5 shadow-sm space-y-4">
+          <section className="rounded-2xl border bg-card p-4 shadow-sm sm:p-5 space-y-4">
             <h2 className="text-lg font-semibold text-foreground">Analyse et remediations</h2>
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
               <InfoCard title="Reference publique" value={incident.public_reference || "Aucune reference publique"} />
               <InfoCard title="Systemes affectes" value={incident.affected_systems || "Non renseignes"} />
               <InfoCard title="Contexte national" value={incident.country_context} />
@@ -242,7 +207,7 @@ export default function IncidentDetailPage() {
             <InfoCard title="Verification de resolution" value={incident.resolution_verification || "Aucune verification renseignee"} />
           </section>
 
-          <section className="rounded-2xl border bg-card p-5 shadow-sm space-y-4">
+          <section className="rounded-2xl border bg-card p-4 shadow-sm sm:p-5 space-y-4">
             <h2 className="text-lg font-semibold text-foreground">Commentaires et suivi collaboratif</h2>
             <div className="space-y-3">
               {comments.length === 0 ? (
@@ -250,10 +215,10 @@ export default function IncidentDetailPage() {
               ) : (
                 comments.map((entry) => (
                   <div key={entry.id} className="rounded-xl border p-4">
-                    <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        <UserRound className="h-4 w-4" />
-                        <span>{entry.author_name}</span>
+                    <div className="flex flex-col gap-2 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <UserRound className="h-4 w-4 shrink-0" />
+                        <span className="truncate">{entry.author_name}</span>
                         {entry.is_internal && <span className="status-badge status-warning">Interne CERT</span>}
                       </div>
                       <span>{new Date(entry.created_at).toLocaleString("fr-FR")}</span>
@@ -266,21 +231,14 @@ export default function IncidentDetailPage() {
             <div className="space-y-3 rounded-xl border p-4">
               <Label htmlFor="comment">Ajouter un commentaire</Label>
               <Textarea id="comment" rows={4} value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Ajouter un commentaire de suivi, une hypothese technique ou une confirmation de resolution..." />
-              {canReview && (
-                <label className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <input type="checkbox" checked={internalComment} onChange={(event) => setInternalComment(event.target.checked)} />
-                  Marquer comme commentaire interne CERT
-                </label>
-              )}
-              <Button onClick={() => commentMutation.mutate()} disabled={commentMutation.isPending || !comment.trim()}>
-                {commentMutation.isPending ? "Publication..." : "Ajouter le commentaire"}
-              </Button>
+              {canReview && <label className="flex items-center gap-2 text-sm text-muted-foreground"><input type="checkbox" checked={internalComment} onChange={(event) => setInternalComment(event.target.checked)} /> Marquer comme commentaire interne CERT</label>}
+              <Button className="w-full sm:w-auto" onClick={() => commentMutation.mutate()} disabled={commentMutation.isPending || !comment.trim()}>{commentMutation.isPending ? "Publication..." : "Ajouter le commentaire"}</Button>
             </div>
           </section>
         </div>
 
         <div className="space-y-6">
-          <section className="rounded-2xl border bg-card p-5 shadow-sm space-y-3">
+          <section className="rounded-2xl border bg-card p-4 shadow-sm sm:p-5 space-y-3">
             <h2 className="text-lg font-semibold text-foreground">Chronologie</h2>
             <TimelineRow icon={Calendar} label="Declare le" value={new Date(incident.reported_at).toLocaleString("fr-FR")} />
             {incident.status === "alert" && <TimelineRow icon={Siren} label="Etat actuel" value="Alerte active" />}
@@ -290,80 +248,31 @@ export default function IncidentDetailPage() {
           </section>
 
           {canReview && (
-            <section className="rounded-2xl border bg-card p-5 shadow-sm space-y-4">
+            <section className="rounded-2xl border bg-card p-4 shadow-sm sm:p-5 space-y-4">
               <h2 className="text-lg font-semibold text-foreground">Revue expert cyber</h2>
-              <div className="space-y-2">
-                <Label htmlFor="public_reference">Reference CERT / dossier</Label>
-                <Input id="public_reference" value={reviewForm.public_reference} onChange={(event) => setReviewForm({ ...reviewForm, public_reference: event.target.value })} placeholder="Ex: CERT-RDC-2026-INC-004" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="affected_systems">Systemes affectes</Label>
-                <Textarea id="affected_systems" rows={3} value={reviewForm.affected_systems} onChange={(event) => setReviewForm({ ...reviewForm, affected_systems: event.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="analyst_notes">Notes d'analyse</Label>
-                <Textarea id="analyst_notes" rows={3} value={reviewForm.analyst_notes} onChange={(event) => setReviewForm({ ...reviewForm, analyst_notes: event.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="expert_summary">Synthese expert</Label>
-                <Textarea id="expert_summary" rows={3} value={reviewForm.expert_summary} onChange={(event) => setReviewForm({ ...reviewForm, expert_summary: event.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="remediation_steps">Comment resoudre / contenir l'attaque</Label>
-                <Textarea id="remediation_steps" rows={4} value={reviewForm.remediation_steps} onChange={(event) => setReviewForm({ ...reviewForm, remediation_steps: event.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="resolution_verification">Verification de correction</Label>
-                <Textarea id="resolution_verification" rows={3} value={reviewForm.resolution_verification} onChange={(event) => setReviewForm({ ...reviewForm, resolution_verification: event.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Etat de validation</Label>
-                <Select value={reviewForm.validation_state} onValueChange={(value) => setReviewForm({ ...reviewForm, validation_state: value as ValidationState })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending_review">{VALIDATION_STATE_LABELS.pending_review}</SelectItem>
-                    <SelectItem value="needs_information">{VALIDATION_STATE_LABELS.needs_information}</SelectItem>
-                    <SelectItem value="validated">{VALIDATION_STATE_LABELS.validated}</SelectItem>
-                    <SelectItem value="mitigated">{VALIDATION_STATE_LABELS.mitigated}</SelectItem>
-                    <SelectItem value="closed">{VALIDATION_STATE_LABELS.closed}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button onClick={saveReview} disabled={updateMutation.isPending}>{updateMutation.isPending ? "Sauvegarde..." : "Sauvegarder la revue"}</Button>
+              <div className="space-y-2"><Label htmlFor="public_reference">Reference CERT / dossier</Label><Input id="public_reference" value={reviewForm.public_reference} onChange={(event) => setReviewForm({ ...reviewForm, public_reference: event.target.value })} /></div>
+              <div className="space-y-2"><Label htmlFor="affected_systems">Systemes affectes</Label><Textarea id="affected_systems" rows={3} value={reviewForm.affected_systems} onChange={(event) => setReviewForm({ ...reviewForm, affected_systems: event.target.value })} /></div>
+              <div className="space-y-2"><Label htmlFor="analyst_notes">Notes d'analyse</Label><Textarea id="analyst_notes" rows={3} value={reviewForm.analyst_notes} onChange={(event) => setReviewForm({ ...reviewForm, analyst_notes: event.target.value })} /></div>
+              <div className="space-y-2"><Label htmlFor="expert_summary">Synthese expert</Label><Textarea id="expert_summary" rows={3} value={reviewForm.expert_summary} onChange={(event) => setReviewForm({ ...reviewForm, expert_summary: event.target.value })} /></div>
+              <div className="space-y-2"><Label htmlFor="remediation_steps">Comment resoudre / contenir l'attaque</Label><Textarea id="remediation_steps" rows={4} value={reviewForm.remediation_steps} onChange={(event) => setReviewForm({ ...reviewForm, remediation_steps: event.target.value })} /></div>
+              <div className="space-y-2"><Label htmlFor="resolution_verification">Verification de correction</Label><Textarea id="resolution_verification" rows={3} value={reviewForm.resolution_verification} onChange={(event) => setReviewForm({ ...reviewForm, resolution_verification: event.target.value })} /></div>
+              <div className="space-y-2"><Label>Etat de validation</Label><Select value={reviewForm.validation_state} onValueChange={(value) => setReviewForm({ ...reviewForm, validation_state: value as ValidationState })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="pending_review">{VALIDATION_STATE_LABELS.pending_review}</SelectItem><SelectItem value="needs_information">{VALIDATION_STATE_LABELS.needs_information}</SelectItem><SelectItem value="validated">{VALIDATION_STATE_LABELS.validated}</SelectItem><SelectItem value="mitigated">{VALIDATION_STATE_LABELS.mitigated}</SelectItem><SelectItem value="closed">{VALIDATION_STATE_LABELS.closed}</SelectItem></SelectContent></Select></div>
+              <Button className="w-full sm:w-auto" onClick={saveReview} disabled={updateMutation.isPending}>{updateMutation.isPending ? "Sauvegarde..." : "Sauvegarder la revue"}</Button>
             </section>
           )}
 
           {canReview && availableTransitions.length > 0 && (
-            <section className="rounded-2xl border bg-card p-5 shadow-sm space-y-3">
+            <section className="rounded-2xl border bg-card p-4 shadow-sm sm:p-5 space-y-3">
               <h2 className="text-lg font-semibold text-foreground">Transitions de statut</h2>
-              <div className="flex flex-wrap gap-2">
+              <div className="grid gap-2 sm:grid-cols-2">
                 {availableTransitions.map((status) => (
-                  <Button key={status} variant={status === "rejected" ? "destructive" : "default"} onClick={() => changeStatus(status)} disabled={updateMutation.isPending}>
-                    {INCIDENT_STATUS_LABELS[status]}
-                  </Button>
+                  <Button key={status} className="w-full" variant={status === "rejected" ? "destructive" : "default"} onClick={() => changeStatus(status)} disabled={updateMutation.isPending}>{INCIDENT_STATUS_LABELS[status]}</Button>
                 ))}
               </div>
             </section>
           )}
 
-          {canDelete && (
-            <Button
-              variant="destructive"
-              className="w-full"
-              onClick={async () => {
-                if (!window.confirm("Supprimer cet incident ?")) return;
-                const { error } = await supabase.from("incidents").delete().eq("id", id!);
-                if (error) {
-                  toast.error(error.message);
-                } else {
-                  toast.success("Incident supprime");
-                  navigate("/incidents");
-                }
-              }}
-            >
-              Supprimer le dossier
-            </Button>
-          )}
+          {canDelete && <Button variant="destructive" className="w-full" onClick={async () => { if (!window.confirm("Supprimer cet incident ?")) return; const { error } = await supabase.from("incidents").delete().eq("id", id!); if (error) toast.error(error.message); else { toast.success("Incident supprime"); navigate("/incidents"); } }}>Supprimer le dossier</Button>}
         </div>
       </div>
     </div>
@@ -371,22 +280,9 @@ export default function IncidentDetailPage() {
 }
 
 function InfoCard({ title, value }: { title: string; value: string }) {
-  return (
-    <div className="rounded-xl border p-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{title}</p>
-      <p className="mt-2 whitespace-pre-wrap text-sm text-foreground">{value}</p>
-    </div>
-  );
+  return <div className="rounded-xl border p-4"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{title}</p><p className="mt-2 whitespace-pre-wrap break-words text-sm text-foreground">{value}</p></div>;
 }
 
 function TimelineRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string }) {
-  return (
-    <div className="flex items-start gap-3 text-sm">
-      <Icon className="mt-0.5 h-4 w-4 text-muted-foreground" />
-      <div>
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="text-foreground">{value}</p>
-      </div>
-    </div>
-  );
+  return <div className="flex items-start gap-3 text-sm"><Icon className="mt-0.5 h-4 w-4 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">{label}</p><p className="break-words text-foreground">{value}</p></div></div>;
 }

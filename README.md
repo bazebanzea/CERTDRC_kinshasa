@@ -1,3 +1,6 @@
+> **Note sur la méthode de développement**
+> Ce prototype a été construit avec l'assistance d'un outil de génération d'applications par IA ([Lovable](https://lovable.dev)), à partir de mes spécifications fonctionnelles et de mes exigences de sécurité. Il illustre ma capacité à **cadrer un besoin métier en cybersécurité et à piloter la construction d'un produit**, plutôt qu'un développement manuel ligne par ligne. Je suis en mesure d'expliquer l'architecture fonctionnelle, les choix de sécurité et le modèle de données ; certains détails d'implémentation du code généré n'ont pas été écrits à la main.
+
 # CERT RDC Kinshasa
 
 Plateforme nationale de veille, signalement et reponse aux incidents de cybersecurite pour la RDC.
@@ -48,6 +51,7 @@ Installation :
 
 ```bash
 npm install
+cp .env.example .env
 npm run dev
 ```
 
@@ -56,28 +60,6 @@ Build de production :
 ```bash
 npm run build
 ```
-
-## Acces application
-
-Portail principal :
-
-- `/login`
-
-Connexion publique :
-
-- `/login/public`
-
-Connexion reservee staff :
-
-- `/login/staff`
-
-Administration utilisateurs :
-
-- `/admin/users`
-
-Centre d'operations :
-
-- `/operations`
 
 ## Roles applicatifs
 
@@ -88,27 +70,6 @@ Centre d'operations :
 - `authority` : supervision institutionnelle
 - `admin` : administration complete de la plateforme
 
-## Supabase
-
-Le projet utilise Supabase pour :
-
-- l'authentification
-- la gestion des roles
-- la base de donnees
-- les Edge Functions
-- la MFA
-
-Principales Edge Functions :
-
-- `import-cert-fr`
-- `invite-staff-user`
-
-## GitHub
-
-Depot source :
-
-- https://github.com/bazebanzea/CERTDRC_kinshasa
-
 ## Securite
 
 Bonnes pratiques recommandees :
@@ -117,6 +78,3 @@ Bonnes pratiques recommandees :
 - changer immediatement le mot de passe temporaire apres invitation
 - limiter les roles admin aux seuls comptes necessaires
 - ne jamais publier les fichiers `.env` ni les cles sensibles
-- 
-## lien du projet sur netlify
-- https://certdrc.netlify.app/
